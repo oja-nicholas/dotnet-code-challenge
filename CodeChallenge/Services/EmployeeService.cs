@@ -59,5 +59,63 @@ namespace CodeChallenge.Services
 
             return newEmployee;
         }
+
+        // Calculating the reporting structure at the service layer for the most flexibility with data access. If I calculated this
+        // lower in the stack, I might run into problems if the data model became more complicated in the future.
+        public ReportingStructure GetReportingStructure(string employeeId)
+        {
+            var employee = _employeeRepository.GetById(employeeId);
+            // If the employee isn't found, return null so the controller can return the not found message.
+            if (employee == null)
+            {
+                return null;
+            }
+
+            // Initialize the HashSet to track visited IDs and start the recursion
+            var visitedIds = new HashSet<string>();
+            int numberOfReports = CalculateNumberOfReports(employee, visitedIds);
+
+            return new ReportingStructure(employee, numberOfReports);
+        }
+
+        private int CalculateNumberOfReports(Employee employee, HashSet<string> visitedIds)
+        {
+            // If the employee is null, the number of reports is 0.
+            // If the ID has already been visited, that means there is a recursive loop in the data, and we should return 0.
+            if (employee == null || visitedIds.Contains(employee.EmployeeId))
+            {
+                return 0;
+            }
+
+            // The employee ID has been counted during the recursive calculation.
+            visitedIds.Add(employee.EmployeeId);
+
+            // If there are no direct reports, the calculation should return 0.
+            if (employee.DirectReports == null || !employee.DirectReports.Any())
+            {
+                return 0;
+            }
+
+            int count = 0;
+
+            // Calculate the number of reports exist within each direct report.
+            foreach (var report in employee.DirectReports)
+            {
+                // We don't want to count the same employee multiple times.
+                if (!visitedIds.Contains(report.EmployeeId))
+                {
+                    // Count the immediate direct report
+                    count++;
+
+                    // Fetch the full report details from the repository to get their nested reports
+                    var fullReport = _employeeRepository.GetById(report.EmployeeId);
+
+                    // Recursively count the nested reports, passing down the visited state
+                    count += CalculateNumberOfReports(fullReport, visitedIds);
+                }
+            }
+
+            return count;
+        }
     }
 }

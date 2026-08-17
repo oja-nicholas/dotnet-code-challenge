@@ -58,5 +58,21 @@ namespace CodeChallenge.Controllers
 
             return Ok(newEmployee);
         }
+
+        // Reporting Structure only makes sense in the context of an employee, so creating it as a sub-resource of employee.
+        [HttpGet("{id}/reporting-structure")]
+        public IActionResult GetReportingStructure(String id)
+        {
+            _logger.LogDebug($"Recieved employee reporting structure get request for '{id}'");
+
+            // Retrieve the reporting structure from employee service.
+            var reportingStructure = _employeeService.GetReportingStructure(id);
+
+            // If reportingStructure was not found, that means the employee wasn't found.
+            if (reportingStructure == null)
+                return NotFound();
+
+            return Ok(reportingStructure);
+        }
     }
 }
