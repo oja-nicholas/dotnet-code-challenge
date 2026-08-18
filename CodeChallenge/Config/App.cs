@@ -13,13 +13,16 @@ namespace CodeChallenge.Config
 {
     public class App
     {
+        // Updating database name to be a constant on App to be used elsewhere
+        public static readonly string DB_NAME = "CodeChallengeDB";
+
         public WebApplication Configure(string[] args)
         {
             args ??= Array.Empty<string>();
 
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.UseEmployeeDB();
+            builder.UseApplicationDb();
             
             AddServices(builder.Services);
 
@@ -29,7 +32,7 @@ namespace CodeChallenge.Config
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                SeedEmployeeDB();
+                SeedApplicationDB();
             }
 
             app.UseAuthorization();
@@ -48,11 +51,11 @@ namespace CodeChallenge.Config
             services.AddControllers();
         }
 
-        private void SeedEmployeeDB()
+        private void SeedApplicationDB()
         {
             new EmployeeDataSeeder(
-                new EmployeeContext(
-                    new DbContextOptionsBuilder<EmployeeContext>().UseInMemoryDatabase("EmployeeDB").Options
+                new ApplicationDbContext(
+                    new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(DB_NAME).Options
             )).Seed().Wait();
         }
     }

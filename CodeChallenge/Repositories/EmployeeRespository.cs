@@ -11,38 +11,38 @@ namespace CodeChallenge.Repositories
 {
     public class EmployeeRespository : IEmployeeRepository
     {
-        private readonly EmployeeContext _employeeContext;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<IEmployeeRepository> _logger;
 
-        public EmployeeRespository(ILogger<IEmployeeRepository> logger, EmployeeContext employeeContext)
+        public EmployeeRespository(ILogger<IEmployeeRepository> logger, ApplicationDbContext dbContext)
         {
-            _employeeContext = employeeContext;
+            _dbContext = dbContext;
             _logger = logger;
         }
 
         public Employee Add(Employee employee)
         {
             employee.EmployeeId = Guid.NewGuid().ToString();
-            _employeeContext.Employees.Add(employee);
+            _dbContext.Employees.Add(employee);
             return employee;
         }
 
         public Employee GetById(string id)
         {
             // Updating the call for retrieving employee by ID to include direct reports
-            return _employeeContext.Employees
+            return _dbContext.Employees
                 .Include(e => e.DirectReports)
                 .SingleOrDefault(e => e.EmployeeId == id);
         }
 
         public Task SaveAsync()
         {
-            return _employeeContext.SaveChangesAsync();
+            return _dbContext.SaveChangesAsync();
         }
 
         public Employee Remove(Employee employee)
         {
-            return _employeeContext.Remove(employee).Entity;
+            return _dbContext.Remove(employee).Entity;
         }
     }
 }
