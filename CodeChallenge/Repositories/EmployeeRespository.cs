@@ -29,9 +29,10 @@ namespace CodeChallenge.Repositories
 
         public Employee GetById(string id)
         {
-            // Updating the call for retrieving employee by ID to include direct reports
+            // Updating the call for retrieving employee by ID to include direct reports and compensation
             return _dbContext.Employees
                 .Include(e => e.DirectReports)
+                .Include(e => e.Compensation)
                 .SingleOrDefault(e => e.EmployeeId == id);
         }
 

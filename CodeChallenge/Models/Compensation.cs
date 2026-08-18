@@ -9,7 +9,5 @@ namespace CodeChallenge.Models
         public string EmployeeId { get; set; }
         public decimal Salary { get; set; }
         public DateTime EffectiveDate { get; set; }
-
-        public Employee Employee { get; set; }
     }
 }
