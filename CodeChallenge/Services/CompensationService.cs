@@ -44,24 +44,29 @@ namespace CodeChallenge.Services
 
         public Compensation Replace(Compensation originalCompensation, Compensation newCompensation)
         {
-            // Straight-forward method to replace the compensation if both the original and new compensations exist and the employee can be found.
-            // If only original compensation exists, remove it.
-            if(originalCompensation != null)
+            // Replace the compensation only when the original exists.
+            // If the original compensation is null, return null to indicate nothing was replaced.
+            if (originalCompensation == null)
             {
-                _compensationRepository.Remove(originalCompensation);
-                if (newCompensation != null)
-                {
-                    // ensure the original has been removed, otherwise EF will complain another entity w/ same id already exists
-                    _compensationRepository.SaveAsync().Wait();
-
-                    _compensationRepository.Add(newCompensation);
-                    // overwrite the new compenssation id with the previous compensation id
-                    newCompensation.CompensationId = originalCompensation.CompensationId;
-                    // overwrite the new employee id with previous employee id
-                    newCompensation.EmployeeId = originalCompensation.EmployeeId;
-                }
-                _compensationRepository.SaveAsync().Wait();
+                return null;
             }
+
+            // Remove the original compensation
+            _compensationRepository.Remove(originalCompensation);
+
+            if (newCompensation != null)
+            {
+                // ensure the original has been removed, otherwise EF will complain another entity w/ same id already exists
+                _compensationRepository.SaveAsync().Wait();
+
+                _compensationRepository.Add(newCompensation);
+                // overwrite the new compensation id with the previous compensation id
+                newCompensation.CompensationId = originalCompensation.CompensationId;
+                // overwrite the new employee id with previous employee id
+                newCompensation.EmployeeId = originalCompensation.EmployeeId;
+            }
+
+            _compensationRepository.SaveAsync().Wait();
 
             return newCompensation;
         }

@@ -63,10 +63,15 @@ namespace CodeChallenge.Controllers
                 return NotFound();
 
             // Update EmployeeId on the new compensation object to match what was passed into the controller
-            newCompensation.EmployeeId = employeeId;
-            _compensationService.Replace(existingCompensation, newCompensation);
+            if (newCompensation != null)
+            {
+                newCompensation.EmployeeId = employeeId;
+            }
 
-            return Ok(newCompensation);
+            var replaced = _compensationService.Replace(existingCompensation, newCompensation);
+
+            // Return whatever the service returned (could be null if the new compensation is null)
+            return Ok(replaced);
         }
     }
 }
