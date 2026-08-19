@@ -27,6 +27,42 @@ namespace CodeCodeChallenge.Tests.Integration
             _httpClient = _testServer.NewClient();
         }
 
+        // GetReportingStructure test methods written by Copilot. I verified the logic was testing the correct logic.
+        [TestMethod]
+        public void GetReportingStructure_Returns_NotFound_WhenEmployeeMissing()
+        {
+            // Arrange
+            var employeeId = "no-such-employee";
+
+            // Execute
+            var getRequestTask = _httpClient.GetAsync($"api/employee/{employeeId}/reporting-structure");
+            var response = getRequestTask.Result;
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        // GetReportingStructure test methods written by Copilot. I verified the logic was testing the correct logic.
+        [TestMethod]
+        public void GetReportingStructure_Returns_CorrectNumberOfReports()
+        {
+            // Arrange
+            var employeeId = "16a596ae-edd3-4847-99fe-c4518e82c86f"; // John Lennon in seed data
+            var expectedReports = 4; // John -> Paul + Ringo + Pete + George
+
+            // Execute
+            var getRequestTask = _httpClient.GetAsync($"api/employee/{employeeId}/reporting-structure");
+            var response = getRequestTask.Result;
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            var reportingStructure = response.DeserializeContent<ReportingStructure>();
+            Assert.IsNotNull(reportingStructure);
+            Assert.AreEqual(expectedReports, reportingStructure.NumberOfReports);
+            Assert.IsNotNull(reportingStructure.Employee);
+            Assert.AreEqual(employeeId, reportingStructure.Employee.EmployeeId);
+        }
+
         [ClassCleanup]
         public static void CleanUpTest()
         {
