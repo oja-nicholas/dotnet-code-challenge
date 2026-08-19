@@ -31,7 +31,11 @@ namespace CodeChallenge.Controllers
 
             // Update EmployeeId on the compensation object to match what was passed into the controller
             compensation.EmployeeId = employeeId;
-            _compensationService.Create(compensation);
+            var created = _compensationService.Create(compensation);
+
+            // If the result returned null, we need to return a NotFound() response since it means the compensation wasn't created.
+           if (created == null)
+                return NotFound();
 
             // Since we are only supporting returning compensation by employee ID, we need the route to reflect the employee ID
             return CreatedAtRoute("getCompensationByEmployeeId", new { employeeId = compensation.EmployeeId }, compensation);
@@ -49,29 +53,6 @@ namespace CodeChallenge.Controllers
                 return NotFound();
 
             return Ok(compensation);
-        }
-
-        // The route already includes the employee ID
-        // When saving compensation, EffectiveDate should be saved with the format: 'YYYY-MM-DDTHH:MI:SS'
-        [HttpPut]
-        public IActionResult ReplaceCompensation(String employeeId, [FromBody] Compensation newCompensation)
-        {
-            _logger.LogDebug($"Recieved compensation update request for '{employeeId}'");
-
-            var existingCompensation = _compensationService.GetByEmployeeId(employeeId);
-            if (existingCompensation == null)
-                return NotFound();
-
-            // Update EmployeeId on the new compensation object to match what was passed into the controller
-            if (newCompensation != null)
-            {
-                newCompensation.EmployeeId = employeeId;
-            }
-
-            var replaced = _compensationService.Replace(existingCompensation, newCompensation);
-
-            // Return whatever the service returned (could be null if the new compensation is null)
-            return Ok(replaced);
         }
     }
 }

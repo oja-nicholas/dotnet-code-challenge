@@ -13,9 +13,15 @@ namespace CodeChallenge.Tests.Integration
     {
         public Compensation StoredCompensation { get; set; }
         public Compensation ReplacedWith { get; set; }
+        public bool ReturnNullOnCreate { get; set; } = false;
 
         public Compensation Create(Compensation compensation)
         {
+            if (ReturnNullOnCreate)
+            {
+                return null;
+            }
+
             StoredCompensation = compensation;
             return StoredCompensation;
         }
@@ -94,6 +100,29 @@ namespace CodeChallenge.Tests.Integration
         }
 
         [TestMethod]
+        public void CreateCompensation_ServiceReturnsNull_ReturnsNotFound()
+        {
+            // Arrange
+            var routeEmployeeId = "emp-null-create";
+            var compensation = new Compensation
+            {
+                CompensationId = "c-null",
+                EmployeeId = "different",
+                Salary = 100m,
+                EffectiveDate = new DateTime(2025, 1, 1)
+            };
+            _service.ReturnNullOnCreate = true;
+
+            // Act
+            var result = _controller.CreateCompensation(routeEmployeeId, compensation);
+
+            // Assert
+            Assert.IsInstanceOfType(result, typeof(NotFoundResult));
+            // Ensure fake service was not updated
+            Assert.IsNull(_service.StoredCompensation);
+        }
+
+        [TestMethod]
         public void GetCompensationByEmployeeId_ReturnsOk_WhenFound()
         {
             // Arrange
@@ -127,65 +156,6 @@ namespace CodeChallenge.Tests.Integration
 
             // Assert
             Assert.IsInstanceOfType(result, typeof(NotFoundResult));
-        }
-
-        [TestMethod]
-        public void ReplaceCompensation_ReturnsNotFound_WhenOriginalMissing()
-        {
-            // Arrange
-            var employeeId = "nope";
-            var newComp = new Compensation { CompensationId = "new", Salary = 1m, EffectiveDate = DateTime.UtcNow };
-
-            // Act
-            var result = _controller.ReplaceCompensation(employeeId, newComp);
-
-            // Assert
-            Assert.IsInstanceOfType(result, typeof(NotFoundResult));
-        }
-
-        [TestMethod]
-        public void ReplaceCompensation_ReplacesAndReturnsOk_WhenOriginalExists()
-        {
-            // Arrange
-            var employeeId = "emp-9";
-            var original = new Compensation { CompensationId = "orig-1", EmployeeId = employeeId, Salary = 10m, EffectiveDate = DateTime.UtcNow };
-            _service.StoredCompensation = original;
-
-            var newComp = new Compensation { CompensationId = "new-9", EmployeeId = employeeId, Salary = 20m, EffectiveDate = DateTime.UtcNow.AddDays(1) };
-            // Act
-            var result = _controller.ReplaceCompensation(employeeId, newComp) as OkObjectResult;
-
-            // Assert
-            Assert.IsNotNull(result);
-            var returned = result.Value as Compensation;
-            Assert.IsNotNull(returned);
-            Assert.AreEqual(original.CompensationId, returned.CompensationId);
-            Assert.AreEqual(original.EmployeeId, returned.EmployeeId);
-            Assert.AreEqual(20m, returned.Salary);
-
-            // Verify fake service was updated
-            Assert.IsNotNull(_service.StoredCompensation);
-            Assert.AreEqual(returned.CompensationId, _service.StoredCompensation.CompensationId);
-            Assert.AreEqual(returned.EmployeeId, _service.StoredCompensation.EmployeeId);
-        }
-
-        [TestMethod]
-        public void ReplaceCompensation_WhenNewCompensationIsNull_RemovesOriginalAndReturnsNull()
-        {
-            // Arrange
-            var employeeId = "emp-null";
-            var original = new Compensation { CompensationId = "orig-null", EmployeeId = employeeId, Salary = 50m, EffectiveDate = DateTime.UtcNow };
-            _service.StoredCompensation = original;
-
-            // Act
-            var result = _controller.ReplaceCompensation(employeeId, null) as OkObjectResult;
-
-            // Assert
-            Assert.IsNotNull(result);
-            Assert.IsNull(result.Value);
-
-            // Verify fake service removed the original
-            Assert.IsNull(_service.StoredCompensation);
         }
     }
 }

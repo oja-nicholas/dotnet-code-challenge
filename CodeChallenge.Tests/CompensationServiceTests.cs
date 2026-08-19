@@ -110,6 +110,29 @@ namespace CodeChallenge.Tests.Integration
         }
 
         [TestMethod]
+        public void Create_WhenExistingCompensationExists_RemovesAndAddsAndSavesTwice()
+        {
+            // Arrange
+            var comp = new Compensation { EmployeeId = "dup", Salary = 200m, EffectiveDate = DateTime.UtcNow };
+            // existing compensation for same employee
+            var existing = new Compensation { CompensationId = "existing-1", EmployeeId = "dup", Salary = 100m, EffectiveDate = DateTime.UtcNow.AddDays(-1) };
+            _repo.Store.Add(existing);
+            // Ensure employee exists
+            _employeeRepo.Store.Add(new Employee { EmployeeId = "dup", FirstName = "D", LastName = "U", Department = "X", Position = "Y" });
+
+            // Act
+            var result = _service.Create(comp);
+
+            // Assert
+            Assert.IsNotNull(result);
+            // existing should be removed and new comp added
+            Assert.IsFalse(_repo.Store.Contains(existing));
+            Assert.IsTrue(_repo.Store.Contains(comp));
+            // SaveAsync should be called twice: once for removal, once for final save
+            Assert.AreEqual(2, _repo.SaveAsyncCount);
+        }
+
+        [TestMethod]
         public void Create_ReturnsNull_WhenCompensationIsNull()
         {
             // Arrange
@@ -148,61 +171,6 @@ namespace CodeChallenge.Tests.Integration
             // Assert
             Assert.IsNull(result);
             Assert.AreEqual(0, _repo.SaveAsyncCount);
-        }
-
-        [TestMethod]
-        public void Replace_WhenOriginalIsNull_ReturnsNullAndDoesNotCallRepo()
-        {
-            // Arrange
-            var newComp = new Compensation { CompensationId = "n1", EmployeeId = "e3", Salary = 1m, EffectiveDate = DateTime.UtcNow };
-
-            // Act
-            var result = _service.Replace(null, newComp);
-
-            // Assert
-            Assert.IsNull(result);
-            Assert.AreEqual(0, _repo.SaveAsyncCount);
-            Assert.AreEqual(0, _repo.Store.Count);
-        }
-
-        [TestMethod]
-        public void Replace_WhenOriginalExists_RemovesAndAddsAndSaves()
-        {
-            // Arrange
-            var original = new Compensation { CompensationId = "orig", EmployeeId = "e4", Salary = 10m, EffectiveDate = DateTime.UtcNow };
-            var replacement = new Compensation { CompensationId = "new", EmployeeId = "e4", Salary = 20m, EffectiveDate = DateTime.UtcNow };
-
-            _repo.Store.Add(original);
-
-            // Act
-            var result = _service.Replace(original, replacement);
-
-            // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(original.CompensationId, replacement.CompensationId);
-            Assert.AreEqual(original.EmployeeId, replacement.EmployeeId);
-            // SaveAsync should be called twice per implementation
-            Assert.AreEqual(2, _repo.SaveAsyncCount);
-            Assert.IsFalse(_repo.Store.Contains(original));
-            Assert.IsTrue(_repo.Store.Contains(replacement));
-        }
-
-        [TestMethod]
-        public void Replace_WhenOriginalExistsAndNewCompIsNull_RemovesOriginalAndReturnsNull()
-        {
-            // Arrange
-            var original = new Compensation { CompensationId = "orig-null-new", EmployeeId = "e5", Salary = 15m, EffectiveDate = DateTime.UtcNow };
-            _repo.Store.Add(original);
-
-            // Act
-            var result = _service.Replace(original, null);
-
-            // Assert
-            Assert.IsNull(result);
-            // original should be removed from the repository store
-            Assert.IsFalse(_repo.Store.Contains(original));
-            // SaveAsync should be called once by implementation (final save)
-            Assert.AreEqual(1, _repo.SaveAsyncCount);
         }
     }
 }

@@ -37,6 +37,14 @@ namespace CodeChallenge.Services
                 return null;
             }
 
+            // Check if existing compensation exists. If it does, remove it and wait for the removal to be complete.
+            var existingCompensation = _compensationRepository.GetByEmployeeId(compensation.EmployeeId);
+            if (existingCompensation != null)
+            {
+                _compensationRepository.Remove(existingCompensation);
+                _compensationRepository.SaveAsync().Wait();
+            }
+
             _compensationRepository.Add(compensation);
             _compensationRepository.SaveAsync().Wait();
 
@@ -52,36 +60,6 @@ namespace CodeChallenge.Services
             }
 
             return null;
-        }
-
-        public Compensation Replace(Compensation originalCompensation, Compensation newCompensation)
-        {
-            // Replace the compensation only when the original exists.
-            // If the original compensation is null, return null to indicate nothing was replaced.
-            if (originalCompensation == null)
-            {
-                return null;
-            }
-
-            // Remove the original compensation
-            _compensationRepository.Remove(originalCompensation);
-
-            if (newCompensation != null)
-            {
-                // ensure the original has been removed, otherwise EF will complain another entity w/ same id already exists
-                _compensationRepository.SaveAsync().Wait();
-
-                // overwrite the new compensation id with the previous compensation id
-                newCompensation.CompensationId = originalCompensation.CompensationId;
-                // overwrite the new employee id with previous employee id
-                newCompensation.EmployeeId = originalCompensation.EmployeeId;
-
-                _compensationRepository.Add(newCompensation);
-            }
-
-            _compensationRepository.SaveAsync().Wait();
-
-            return newCompensation;
         }
     }
 }
