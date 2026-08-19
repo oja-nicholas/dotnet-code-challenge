@@ -44,20 +44,51 @@ namespace CodeChallenge.Tests.Integration
         }
     }
 
+    internal class FakeEmployeeRepository : IEmployeeRepository
+    {
+        public System.Collections.Generic.List<Employee> Store { get; } = new System.Collections.Generic.List<Employee>();
+        public int SaveAsyncCount { get; private set; }
+
+        public Employee Add(Employee employee)
+        {
+            Store.Add(employee);
+            return employee;
+        }
+
+        public Employee GetById(string id)
+        {
+            return Store.Find(e => e.EmployeeId == id);
+        }
+
+        public Employee Remove(Employee employee)
+        {
+            Store.Remove(employee);
+            return employee;
+        }
+
+        public System.Threading.Tasks.Task SaveAsync()
+        {
+            SaveAsyncCount++;
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
+    }
+
     // Unit test generated via Copilot, which I verified before committing.
     [TestClass]
     public class CompensationServiceTests
     {
         private CompensationService _service;
         private FakeCompensationRepository _repo;
+        private FakeEmployeeRepository _employeeRepo;
 
         [TestInitialize]
         public void Setup()
         {
             _repo = new FakeCompensationRepository();
+            _employeeRepo = new FakeEmployeeRepository();
             var loggerFactory = LoggerFactory.Create(builder => { });
             var logger = loggerFactory.CreateLogger<CompensationService>();
-            _service = new CompensationService(logger, _repo);
+            _service = new CompensationService(logger, _employeeRepo, _repo);
         }
 
         [TestMethod]
@@ -65,6 +96,8 @@ namespace CodeChallenge.Tests.Integration
         {
             // Arrange
             var comp = new Compensation { EmployeeId = "e1", Salary = 100m, EffectiveDate = DateTime.UtcNow };
+            // Ensure employee exists in the fake employee repo
+            _employeeRepo.Store.Add(new Employee { EmployeeId = "e1", FirstName = "Test", LastName = "User", Department = "Dev", Position = "Engineer" });
 
             // Act
             var result = _service.Create(comp);
@@ -77,31 +110,44 @@ namespace CodeChallenge.Tests.Integration
         }
 
         [TestMethod]
-        public void GetByEmployeeId_ReturnsNullForEmptyId()
+        public void Create_ReturnsNull_WhenCompensationIsNull()
         {
             // Arrange
-            var emptyId = string.Empty;
 
             // Act
-            var result = _service.GetByEmployeeId(emptyId);
+            var result = _service.Create(null);
 
             // Assert
             Assert.IsNull(result);
+            Assert.AreEqual(0, _repo.SaveAsyncCount);
         }
 
         [TestMethod]
-        public void GetByEmployeeId_ReturnsValueFromRepo()
+        public void Create_ReturnsNull_WhenEmployeeIdIsEmpty()
         {
             // Arrange
-            var comp = new Compensation { CompensationId = "c1", EmployeeId = "e2", Salary = 5m, EffectiveDate = DateTime.UtcNow };
-            _repo.Store.Add(comp);
+            var comp = new Compensation { EmployeeId = string.Empty, Salary = 1m, EffectiveDate = DateTime.UtcNow };
 
             // Act
-            var result = _service.GetByEmployeeId("e2");
+            var result = _service.Create(comp);
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(comp, result);
+            Assert.IsNull(result);
+            Assert.AreEqual(0, _repo.SaveAsyncCount);
+        }
+
+        [TestMethod]
+        public void Create_ReturnsNull_WhenEmployeeNotFound()
+        {
+            // Arrange
+            var comp = new Compensation { EmployeeId = "missing-emp", Salary = 1m, EffectiveDate = DateTime.UtcNow };
+
+            // Act
+            var result = _service.Create(comp);
+
+            // Assert
+            Assert.IsNull(result);
+            Assert.AreEqual(0, _repo.SaveAsyncCount);
         }
 
         [TestMethod]

@@ -10,23 +10,35 @@ namespace CodeChallenge.Services
 {
     public class CompensationService : ICompensationService
     {
+        private readonly IEmployeeRepository _employeeRepository;
         private readonly ICompensationRepository _compensationRepository;
         private readonly ILogger<CompensationService> _logger;
 
-        public CompensationService(ILogger<CompensationService> logger, ICompensationRepository compensationRepository)
+        public CompensationService(ILogger<CompensationService> logger, IEmployeeRepository employeeRepository, ICompensationRepository compensationRepository)
         {
+            _employeeRepository = employeeRepository;
             _compensationRepository = compensationRepository;
             _logger = logger;
         }
 
         public Compensation Create(Compensation compensation)
         {
-            // Straight-forward method to add the compensation and save as long as it is not null.
-            if(compensation != null)
+            // Only create the compensation and employee ID are not null.
+            if (compensation == null || string.IsNullOrEmpty(compensation.EmployeeId))
             {
-                _compensationRepository.Add(compensation);
-                _compensationRepository.SaveAsync().Wait();
+                return null;
             }
+
+            // Check if the employee exists before creating the compensation
+            var employee = _employeeRepository.GetById(compensation.EmployeeId);
+            // If employee is null, return null to indicate that the compensation cannot be created for a non-existent employee
+            if (employee == null)
+            {
+                return null;
+            }
+
+            _compensationRepository.Add(compensation);
+            _compensationRepository.SaveAsync().Wait();
 
             return compensation;
         }
@@ -59,11 +71,12 @@ namespace CodeChallenge.Services
                 // ensure the original has been removed, otherwise EF will complain another entity w/ same id already exists
                 _compensationRepository.SaveAsync().Wait();
 
-                _compensationRepository.Add(newCompensation);
                 // overwrite the new compensation id with the previous compensation id
                 newCompensation.CompensationId = originalCompensation.CompensationId;
                 // overwrite the new employee id with previous employee id
                 newCompensation.EmployeeId = originalCompensation.EmployeeId;
+
+                _compensationRepository.Add(newCompensation);
             }
 
             _compensationRepository.SaveAsync().Wait();
